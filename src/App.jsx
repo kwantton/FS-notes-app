@@ -5,6 +5,8 @@ import loginService from './services/login' // part 5a
 import Notification from './components/Notification.jsx'
 import Footer from './components/Footer.jsx'
 import LoginForm from "./components/LoginForm.jsx" // 5b
+import Togglable from "./components/Togglable.jsx" // 5b; extracting the visibility logic of the login form into "Togglable"
+import NoteForm from "./components/NoteForm.jsx"
 
 const App = () => {
   const [notes, setNotes] = useState(null) // HUOM! Tämä takia, huomaa rivin ~~19 "if(!notes) {return null}" joka varmistaa, että App:in käynnistäessä ekalla kertaa palautetaan null, ja vasta kun notes on haettu serveriltä (?), alkaa toimimaan; palautetaan null App:ista, kunnes serveriltä on saatu data. HUOM! "The method based on conditional rendering is suitable in cases where it is impossible to define the state so that the initial rendering is possible." Eli mitään oikeaa syytä initata notes "null":iksi ei ole; paljon mieluummin inittaa []:ksi, jolloin tätä ongelmaa ei ole!! (ongelma: null:ille ei voi kutsua .map:iä. TAI, joutuisit joka kohdassa tarkistamaan ?.map jne... paskempi vaihtoehto)
@@ -38,6 +40,8 @@ const App = () => {
   console.log('render', notes.length, 'notes')
 
 
+  // 5b -> "Togglable.jsx" component used as well
+
   const loginForm = () => { // 5b
     const hideWhenVisible = { display: loginVisible ? 'none' : '' } // none = do NOT show
     const showWhenVisible = { display: loginVisible ? '' : 'none' } // '' = "display will not receive any value related to the visibility of the component", eli ei piilota (eikä tee mitään muutakaan)
@@ -61,6 +65,7 @@ const App = () => {
     )
   }
 
+  // 5b "NoteForm" component used as well
   const noteForm = () => ( // 5a. NOTICE! IT RETURNS DIRECTLY (), NOT {}!!!!
     <form onSubmit={addNote}>
       <input
@@ -150,7 +155,14 @@ const App = () => {
         ? loginForm() 
         : <div>
             <p>{user.name} logged-in</p>
-            {noteForm()}
+            {/**{noteForm()} <- this is old! this was before in 5b we started using NoteForm as a child component of Togglable*/}
+            <Togglable buttonLabel="new note">
+              <NoteForm
+                onSubmit={addNote}
+                value={newNote}
+                handleChange={handleNoteChange}
+              />
+            </Togglable>  {/** since NoteForm is the child component of Togglable, this closing tag is needed! */}
           </div>}      {/** in effect: only if user is logged in (=is not null), show the html of loginForm. Otherwise, show the user's name as logged in, and the notes. Nice. */} 
       <div>        
         <button onClick={() => setShowAll(!showAll)}>          
