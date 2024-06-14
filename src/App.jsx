@@ -1,5 +1,5 @@
+import { useState, useEffect, useRef } from 'react' // 5b: useRef, for accessing Togglable-component's state variable "visible" to be able to hide the form for adding new notes every time after a new note has been created
 import Note from "./components/Note.jsx"
-import { useState, useEffect } from 'react'
 import noteService from './services/notes' // imports THREE functions as defaultc: 
 import loginService from './services/login' // part 5a
 import Notification from './components/Notification.jsx'
@@ -10,13 +10,14 @@ import NoteForm from "./components/NoteForm.jsx"
 
 const App = () => {
   const [notes, setNotes] = useState(null) // HUOM! Tämä takia, huomaa rivin ~~19 "if(!notes) {return null}" joka varmistaa, että App:in käynnistäessä ekalla kertaa palautetaan null, ja vasta kun notes on haettu serveriltä (?), alkaa toimimaan; palautetaan null App:ista, kunnes serveriltä on saatu data. HUOM! "The method based on conditional rendering is suitable in cases where it is impossible to define the state so that the initial rendering is possible." Eli mitään oikeaa syytä initata notes "null":iksi ei ole; paljon mieluummin inittaa []:ksi, jolloin tätä ongelmaa ei ole!! (ongelma: null:ille ei voi kutsua .map:iä. TAI, joutuisit joka kohdassa tarkistamaan ?.map jne... paskempi vaihtoehto)
-  const [newNote, setNewNote] = useState('')
+  //const [newNote, setNewNote] = useState('') // moved to NoteForm.jsx component
   const [showAll, setShowAll] = useState(false) // tähän true -> kaikki näytetään by default; false -> näytetään vain tärkeät by default c:
   const [errorMessage, setErrorMessage] = useState(null) // you must have null here instead of '', or else you'll see the red error box with '' (nothing) in it by default c:
   const [username, setUsername] = useState('') // 5a https://fullstackopen.com/en/part4/token_authentication#limiting-creating-new-notes-to-logged-in-users  
   const [password, setPassword] = useState('') // 5a
   const [user, setUser] = useState(null) // 5a
   const [loginVisible, setLoginVisible] = useState(false) // 5b
+  const noteFormRef = useRef() // 5b; for referring to Togglable's "toggleVisibility" function from here, App.jsx!
    
   useEffect(() => {    
     noteService.getAll()
@@ -65,15 +66,17 @@ const App = () => {
     )
   }
 
-  // 5b "NoteForm" component used as well
-  const noteForm = () => (
-    <Togglable buttonLabel='new note'>
-      <NoteForm createNote={addNote} />
-    </Togglable> /** since NoteForm is the child component of Togglable, this closing tag is needed! */
-  )
+  // 5b "NoteForm" component used as well // obsolete since 5b
+  // const noteForm = () => (
+  //   <Togglable buttonLabel='new note' ref={noteFormRef}> {/** 5b; for accessing Togglable's */}
+  //     <NoteForm createNote={addNote} />
+  //   </Togglable> /** since NoteForm is the child component of Togglable, this closing tag is needed! */
+  // )
+
 
   
   const addNote = (noteObject) => {
+    noteFormRef.current.toggleVisibility() // 5b
     //console.log('form onSubmit button clicked', event.currentTarget)  // event.target works too: "event.target will return the element that was clicked but not necessarily the element to which the event listener has been attached."
     noteService      
     .create(noteObject)
@@ -145,7 +148,11 @@ const App = () => {
         : <div>
             <p>{user.name} logged-in</p>
             {/**{noteForm()} <- this is old! this was before in 5b we started using NoteForm as a child component of Togglable*/}
-            {noteForm()}  
+            <Togglable buttonLabel='new note' ref={noteFormRef}>
+              <NoteForm
+                createNote={addNote}
+              />
+            </Togglable>  
           </div>}      {/** in effect: only if user is logged in (=is not null), show the html of loginForm. Otherwise, show the user's name as logged in, and the notes. Nice. */} 
       <div>        
         <button onClick={() => setShowAll(!showAll)}>          
