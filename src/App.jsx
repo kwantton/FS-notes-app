@@ -1,6 +1,7 @@
 import Note from "./components/Note.jsx"
 import { useState, useEffect } from 'react'
 import noteService from './services/notes' // imports THREE functions as defaultc: 
+import loginService from './services/login' // part 5a
 import Notification from './components/Notification.jsx'
 import Footer from './components/Footer.jsx'
 
@@ -8,7 +9,10 @@ const App = () => {
   const [notes, setNotes] = useState(null) // HUOM! Tämä takia, huomaa rivin ~~19 "if(!notes) {return null}" joka varmistaa, että App:in käynnistäessä ekalla kertaa palautetaan null, ja vasta kun notes on haettu serveriltä (?), alkaa toimimaan; palautetaan null App:ista, kunnes serveriltä on saatu data. HUOM! "The method based on conditional rendering is suitable in cases where it is impossible to define the state so that the initial rendering is possible." Eli mitään oikeaa syytä initata notes "null":iksi ei ole; paljon mieluummin inittaa []:ksi, jolloin tätä ongelmaa ei ole!! (ongelma: null:ille ei voi kutsua .map:iä. TAI, joutuisit joka kohdassa tarkistamaan ?.map jne... paskempi vaihtoehto)
   const [newNote, setNewNote] = useState('')
   const [showAll, setShowAll] = useState(false) // tähän true -> kaikki näytetään by default; false -> näytetään vain tärkeät by default c:
-  const [errorMessage, setErrorMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState(null) // you must have null here instead of '', or else you'll see the red error box with '' (nothing) in it by default c:
+  const [username, setUsername] = useState('') // 5a https://fullstackopen.com/en/part4/token_authentication#limiting-creating-new-notes-to-logged-in-users  
+  const [password, setPassword] = useState('') // 5a
+  const [user, setUser] = useState(null) // 5a
   
   useEffect(() => {    
     noteService.getAll()
@@ -16,11 +20,58 @@ const App = () => {
       setNotes(initialNotes)
     }) 
   }, []) // without the [] as 2nd argument, it would keep rendering them FOREVER! Thanks to the [], it will only render them ONCE c:
+
+  useEffect(() => {    // 5a. NB!! This has to be BEFORE the "if(!notes)..." below! Why? Dunno!
+    const loggedUserJSON = window.localStorage.getItem('loggedNoteappUser')    
+    if (loggedUserJSON) {      
+      const user = JSON.parse(loggedUserJSON)      
+      setUser(user)      
+      noteService.setToken(user.token)    
+    }  
+  }, []) // remember: "The empty array as the parameter of the effect ensures that the effect is executed only when the component is rendered for the first time."
+  
   if(!notes) { 
     return null
   }
   console.log('render', notes.length, 'notes')
 
+  
+
+  const loginForm = () => ( // 5a. NOTICE! IT RETURNS DIRECTLY (), NOT {}!!!
+    <form onSubmit={handleLogin}>
+      <div>
+        username
+          <input
+          type="text"
+          value={username}
+          name="Username"
+          onChange={({ target }) => setUsername(target.value)}
+        />
+      </div>
+      <div>
+        password
+          <input
+          type="password"
+          value={password}
+          name="Password"
+          onChange={({ target }) => setPassword(target.value)}
+        />
+      </div>
+      <button type="submit">login</button>
+    </form>      
+  )
+
+  const noteForm = () => ( // 5a. NOTICE! IT RETURNS DIRECTLY (), NOT {}!!!!
+    <form onSubmit={addNote}>
+      <input
+        value={newNote}
+        onChange={handleNoteChange}
+      />
+      <button type="submit">save</button>
+    </form>  
+  )
+
+  
   const addNote = (event) => {
     event.preventDefault()   // prevents the page from being refreshed on submit event 
     console.log('form onSubmit button clicked', event.currentTarget)  // event.target works too: "event.target will return the element that was clicked but not necessarily the element to which the event listener has been attached."
@@ -41,6 +92,28 @@ const App = () => {
   const handleNoteChange = (event) => {     // this event handler is called EVERY TIME onChange of the form value (=form field!). See console.logs! This is needed to be able to change the input value of the form; otherwise it's stuck forever as "a new note" and the console will show a React error message complaining about this c:
     console.log(event.currentTarget.value)
     setNewNote(event.currentTarget.value)   // this updates the newNote based on what the value of the form input field is
+  }
+
+  const handleLogin = async (event) => {    
+    event.preventDefault()        
+    try {      
+      const user = await loginService.login({       // remember the await! Even if you have async/await there already, you also need it here.  
+        username, password
+      })    
+      
+      window.localStorage.setItem(       // 5a: so that even if browser is refreshed, the loggedNoteappUser stays in the local storage of the browser
+        'loggedNoteappUser', JSON.stringify(user)      
+      )
+      noteService.setToken(user.token) // so, user has property token, which will contain the token. This noteService.setToken will set the token for the noteService.create's post function to use -> in effect, authentication ok
+      setUser(user)    // "The token returned with a successful login is saved to the application's state - the user's field token:"  
+      setUsername('')     
+      setPassword('')    
+    } catch (exception) {      
+      setErrorMessage('Please choose one or more: (a) learn to type, (b) jog your memory, (c) create a new account, (d) jog')      
+      setTimeout(() => {        
+        setErrorMessage(null)  // = show the error message for 5 seconds, then set the error message to null again    
+      }, 5000)    
+    }
   }
 
   const toggleImportanceOf = id => {
@@ -64,13 +137,21 @@ const App = () => {
       })
     }
 
-  const notesToShow = showAll ? // ELI: jos showAll = True, niin näytä notes. Jos ei, näytä vain tärkeät (ehto ? tosi:epätosi). Tätä notesToShow:ta käytetään alla returnissa!
-  notes : notes.filter(note => note.important)
+  const notesToShow = showAll  // ELI: jos showAll = True, niin näytä notes. Jos ei, näytä vain tärkeät (ehto ? tosi:epätosi). Tätä notesToShow:ta käytetään alla returnissa!
+    ? notes 
+    : notes.filter(note => note.important)
 
   return (
     <div>
       <h1>Notes</h1>
       <Notification message={errorMessage} />
+
+      {user === null 
+        ? loginForm() 
+        : <div>
+            <p>{user.name} logged-in</p>
+            {noteForm()}
+          </div>}      {/** in effect: only if user is logged in (=is not null), show the html of loginForm. Otherwise, show the user's name as logged in, and the notes. Nice. */} 
       <div>        
         <button onClick={() => setShowAll(!showAll)}>          
           show {showAll ? 'important' : 'all' } {/** tämä on teksti joka näkyy näppäimessä c: ELI muuttuu sen mukaan, mitä näytetään onClick c: */}        
@@ -82,14 +163,9 @@ const App = () => {
           <Note key={note.id} note={note} toggleImportance={() => toggleImportanceOf(note.id)}/>
         )}
       </ul>
-      <form onSubmit={addNote}>        
-        <input value={newNote} onChange={handleNoteChange}/>        
-        <button type="submit">save</button>
-      </form>
       <Footer/>
     </div>
   )
 }
 
 export default App
-//
