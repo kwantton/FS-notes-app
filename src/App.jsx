@@ -66,38 +66,27 @@ const App = () => {
   }
 
   // 5b "NoteForm" component used as well
-  const noteForm = () => ( // 5a. NOTICE! IT RETURNS DIRECTLY (), NOT {}!!!!
-    <form onSubmit={addNote}>
-      <input
-        value={newNote}
-        onChange={handleNoteChange}
-      />
-      <button type="submit">save</button>
-    </form>  
+  const noteForm = () => (
+    <Togglable buttonLabel='new note'>
+      <NoteForm createNote={addNote} />
+    </Togglable> /** since NoteForm is the child component of Togglable, this closing tag is needed! */
   )
 
   
-  const addNote = (event) => {
-    event.preventDefault()   // prevents the page from being refreshed on submit event 
-    console.log('form onSubmit button clicked', event.currentTarget)  // event.target works too: "event.target will return the element that was clicked but not necessarily the element to which the event listener has been attached."
-    const noteObject = {
-      content: newNote,
-      important: Math.random() < 0.5
-      // id : notes.length+1 // "it's better to let the server generate the new id"
-    }
-
+  const addNote = (noteObject) => {
+    //console.log('form onSubmit button clicked', event.currentTarget)  // event.target works too: "event.target will return the element that was clicked but not necessarily the element to which the event listener has been attached."
     noteService      
-    .create(noteObject)      
-    .then(note => {        
-      setNotes(notes.concat(note))
-      setNewNote('')
+    .create(noteObject)
+      .then(returnedNote => {
+        setNotes(notes.concat(returnedNote))
+        // setNewNote('') // NOT ANYMORE! this was moved to "NoteForm" component c:
     })
   }
 
-  const handleNoteChange = (event) => {     // this event handler is called EVERY TIME onChange of the form value (=form field!). See console.logs! This is needed to be able to change the input value of the form; otherwise it's stuck forever as "a new note" and the console will show a React error message complaining about this c:
+  /*const handleNoteChange = (event) => {     // this event handler is called EVERY TIME onChange of the form value (=form field!). See console.logs! This is needed to be able to change the input value of the form; otherwise it's stuck forever as "a new note" and the console will show a React error message complaining about this c:
     console.log(event.currentTarget.value)
     setNewNote(event.currentTarget.value)   // this updates the newNote based on what the value of the form input field is
-  }
+  }*/ // NOT ANYMORE! MOVED TO NoteForm component c:
 
   const handleLogin = async (event) => {    
     event.preventDefault()        
@@ -156,13 +145,7 @@ const App = () => {
         : <div>
             <p>{user.name} logged-in</p>
             {/**{noteForm()} <- this is old! this was before in 5b we started using NoteForm as a child component of Togglable*/}
-            <Togglable buttonLabel="new note">
-              <NoteForm
-                onSubmit={addNote}
-                value={newNote}
-                handleChange={handleNoteChange}
-              />
-            </Togglable>  {/** since NoteForm is the child component of Togglable, this closing tag is needed! */}
+            {noteForm()}  
           </div>}      {/** in effect: only if user is logged in (=is not null), show the html of loginForm. Otherwise, show the user's name as logged in, and the notes. Nice. */} 
       <div>        
         <button onClick={() => setShowAll(!showAll)}>          
