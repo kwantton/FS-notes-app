@@ -4,6 +4,7 @@ import noteService from './services/notes' // imports THREE functions as default
 import loginService from './services/login' // part 5a
 import Notification from './components/Notification.jsx'
 import Footer from './components/Footer.jsx'
+import LoginForm from "./components/LoginForm.jsx" // 5b
 
 const App = () => {
   const [notes, setNotes] = useState(null) // HUOM! Tämä takia, huomaa rivin ~~19 "if(!notes) {return null}" joka varmistaa, että App:in käynnistäessä ekalla kertaa palautetaan null, ja vasta kun notes on haettu serveriltä (?), alkaa toimimaan; palautetaan null App:ista, kunnes serveriltä on saatu data. HUOM! "The method based on conditional rendering is suitable in cases where it is impossible to define the state so that the initial rendering is possible." Eli mitään oikeaa syytä initata notes "null":iksi ei ole; paljon mieluummin inittaa []:ksi, jolloin tätä ongelmaa ei ole!! (ongelma: null:ille ei voi kutsua .map:iä. TAI, joutuisit joka kohdassa tarkistamaan ?.map jne... paskempi vaihtoehto)
@@ -13,7 +14,8 @@ const App = () => {
   const [username, setUsername] = useState('') // 5a https://fullstackopen.com/en/part4/token_authentication#limiting-creating-new-notes-to-logged-in-users  
   const [password, setPassword] = useState('') // 5a
   const [user, setUser] = useState(null) // 5a
-  
+  const [loginVisible, setLoginVisible] = useState(false) // 5b
+   
   useEffect(() => {    
     noteService.getAll()
     .then(initialNotes => {
@@ -35,31 +37,29 @@ const App = () => {
   }
   console.log('render', notes.length, 'notes')
 
-  
 
-  const loginForm = () => ( // 5a. NOTICE! IT RETURNS DIRECTLY (), NOT {}!!!
-    <form onSubmit={handleLogin}>
+  const loginForm = () => { // 5b
+    const hideWhenVisible = { display: loginVisible ? 'none' : '' } // none = do NOT show
+    const showWhenVisible = { display: loginVisible ? '' : 'none' } // '' = "display will not receive any value related to the visibility of the component", eli ei piilota (eikä tee mitään muutakaan)
+
+    return (
       <div>
-        username
-          <input
-          type="text"
-          value={username}
-          name="Username"
-          onChange={({ target }) => setUsername(target.value)}
-        />
+        <div style={hideWhenVisible}>
+          <button onClick={() => setLoginVisible(true)}>log in</button>     {/**  shows login*/}
+        </div>
+        <div style={showWhenVisible}>
+          <LoginForm  // 5b - note: the props are listed here below normally c:
+            username={username}
+            password={password}
+            handleUsernameChange={({ target }) => setUsername(target.value)}
+            handlePasswordChange={({ target }) => setPassword(target.value)}
+            handleSubmit={handleLogin}
+          />
+          <button onClick={() => setLoginVisible(false)}>cancel</button>    {/** hides login */}
+        </div>
       </div>
-      <div>
-        password
-          <input
-          type="password"
-          value={password}
-          name="Password"
-          onChange={({ target }) => setPassword(target.value)}
-        />
-      </div>
-      <button type="submit">login</button>
-    </form>      
-  )
+    )
+  }
 
   const noteForm = () => ( // 5a. NOTICE! IT RETURNS DIRECTLY (), NOT {}!!!!
     <form onSubmit={addNote}>
