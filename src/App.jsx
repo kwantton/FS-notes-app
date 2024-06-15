@@ -150,7 +150,7 @@ const App = () => {
             {/**{noteForm()} <- this is old! this was before in 5b we started using NoteForm as a child component of Togglable*/}
             <Togglable buttonLabel='new note' ref={noteFormRef}>
               <NoteForm
-                createNote={addNote}
+                createNote={addNote} //NB!! it basically does its job again in NoteForm building addNote again!!!
               />
             </Togglable>  
           </div>}      {/** in effect: only if user is logged in (=is not null), show the html of loginForm. Otherwise, show the user's name as logged in, and the notes. Nice. */} 
