@@ -12,10 +12,10 @@ const Togglable = forwardRef((props, refs) => { //5b. NOTE forwardRef!!
   }
 
   useImperativeHandle(refs, () => {         // 5b. "The component uses the useImperativeHandle hook to make its toggleVisibility function available outside of the component."
-    return {      
-        toggleVisibility    
-    }  
-    })
+    return {
+      toggleVisibility
+    }
+  })
 
   return (
     <div>
@@ -31,7 +31,9 @@ const Togglable = forwardRef((props, refs) => { //5b. NOTE forwardRef!!
 })  // 5b! forwardRef
 
 Togglable.propTypes = { // 5b
-    buttonLabel: PropTypes.string.isRequired
+  buttonLabel: PropTypes.string.isRequired
 }
+
+Togglable.displayName = 'Togglable' // 5b HUOM! ILMAN TÄTÄ TULEE LINTATESSA VIRHE, JOTA lint_and_fix ei osaa korjata! 5b, katso https://fullstackopen.com/en/part5/props_children_and_proptypes#e-slint ihan loppu!!
 
 export default Togglable

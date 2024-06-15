@@ -1,5 +1,5 @@
 import { useState } from 'react'
-// 5b 
+// 5b
 const NoteForm = ({ createNote }) => {
   const [newNote, setNewNote] = useState('')
 
